@@ -102,6 +102,12 @@
 #define IF_HAVE_PG_SKIP_KASAN_POISON(flag,string)
 #endif
 
+#ifdef CONFIG_MTK_VM_DEBUG
+#define IF_HAVE_PG_DEBUG(flag,string) ,{1UL << flag, string}
+#else
+#define IF_HAVE_PG_DEBUG(flag,string)
+#endif
+
 #define __def_pageflag_names						\
 	{1UL << PG_locked,		"locked"	},		\
 	{1UL << PG_waiters,		"waiters"	},		\

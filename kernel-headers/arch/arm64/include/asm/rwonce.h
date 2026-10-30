@@ -36,7 +36,7 @@
 #define __READ_ONCE(x)							\
 ({									\
 	typeof(&(x)) __x = &(x);					\
-	int atomic = 1;							\
+	int is_atomic = 1;							\
 	union { __unqual_scalar_typeof(*__x) __val; char __c[1]; } __u;	\
 	switch (sizeof(x)) {						\
 	case 1:								\
@@ -60,9 +60,9 @@
 			: "Q" (*__x) : "memory");			\
 		break;							\
 	default:							\
-		atomic = 0;						\
+		is_atomic = 0;						\
 	}								\
-	atomic ? (typeof(*__x))__u.__val : (*(volatile typeof(__x))__x);\
+	is_atomic ? (typeof(*__x))__u.__val : (*(volatile typeof(__x))__x);\
 })
 
 #endif	/* !BUILD_VDSO */

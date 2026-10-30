@@ -18,6 +18,12 @@
 #ifndef dev_fmt
 #define dev_fmt(fmt) fmt
 #endif
+#if defined(CONFIG_MTK_PRINTK_DEBUG)
+#ifndef KBUILD_MODNAME
+#define KBUILD_MODNAME "unknown module"
+#endif
+#define mtk_dev_fmt(fmt) "[name:"KBUILD_MODNAME"&]" dev_fmt(fmt)
+#endif
 
 struct device;
 
@@ -101,7 +107,22 @@ void _dev_info(const struct device *dev, const char *fmt, ...)
  * #defines for all the dev_<level> macros to prefix with whatever
  * possible use of #define dev_fmt(fmt) ...
  */
-
+#if defined(CONFIG_MTK_PRINTK_DEBUG)
+#define dev_emerg(dev, fmt, ...)					\
+	_dev_emerg(dev, mtk_dev_fmt(fmt), ##__VA_ARGS__)
+#define dev_crit(dev, fmt, ...)						\
+	_dev_crit(dev, mtk_dev_fmt(fmt), ##__VA_ARGS__)
+#define dev_alert(dev, fmt, ...)					\
+	_dev_alert(dev, mtk_dev_fmt(fmt), ##__VA_ARGS__)
+#define dev_err(dev, fmt, ...)						\
+	_dev_err(dev, mtk_dev_fmt(fmt), ##__VA_ARGS__)
+#define dev_warn(dev, fmt, ...)						\
+	_dev_warn(dev, mtk_dev_fmt(fmt), ##__VA_ARGS__)
+#define dev_notice(dev, fmt, ...)					\
+	_dev_notice(dev, mtk_dev_fmt(fmt), ##__VA_ARGS__)
+#define dev_info(dev, fmt, ...)						\
+	_dev_info(dev, mtk_dev_fmt(fmt), ##__VA_ARGS__)
+#else
 #define dev_emerg(dev, fmt, ...)					\
 	_dev_emerg(dev, dev_fmt(fmt), ##__VA_ARGS__)
 #define dev_crit(dev, fmt, ...)						\
@@ -116,14 +137,26 @@ void _dev_info(const struct device *dev, const char *fmt, ...)
 	_dev_notice(dev, dev_fmt(fmt), ##__VA_ARGS__)
 #define dev_info(dev, fmt, ...)						\
 	_dev_info(dev, dev_fmt(fmt), ##__VA_ARGS__)
+#endif
 
 #if defined(CONFIG_DYNAMIC_DEBUG) || \
 	(defined(CONFIG_DYNAMIC_DEBUG_CORE) && defined(DYNAMIC_DEBUG_MODULE))
+
+#if defined(CONFIG_MTK_PRINTK_DEBUG)
+#define dev_dbg(dev, fmt, ...)						\
+	dynamic_dev_dbg(dev, mtk_dev_fmt(fmt), ##__VA_ARGS__)
+#else
 #define dev_dbg(dev, fmt, ...)						\
 	dynamic_dev_dbg(dev, dev_fmt(fmt), ##__VA_ARGS__)
+#endif
 #elif defined(DEBUG)
+#if defined(CONFIG_MTK_PRINTK_DEBUG)
+#define dev_dbg(dev, fmt, ...)						\
+	dev_printk(KERN_DEBUG, dev, mtk_dev_fmt(fmt), ##__VA_ARGS__)
+#else
 #define dev_dbg(dev, fmt, ...)						\
 	dev_printk(KERN_DEBUG, dev, dev_fmt(fmt), ##__VA_ARGS__)
+#endif
 #else
 #define dev_dbg(dev, fmt, ...)						\
 ({									\
@@ -241,5 +274,15 @@ do {									\
 #define dev_WARN_ONCE(dev, condition, format, arg...) \
 	WARN_ONCE(condition, "%s %s: " format, \
 			dev_driver_string(dev), dev_name(dev), ## arg)
+
+__printf(3, 4) int dev_err_probe(const struct device *dev, int err, const char *fmt, ...);
+
+/* Simple helper for dev_err_probe() when ERR_PTR() is to be returned. */
+#define dev_err_ptr_probe(dev, ___err, fmt, ...) \
+	ERR_PTR(dev_err_probe(dev, ___err, fmt, ##__VA_ARGS__))
+
+/* Simple helper for dev_err_probe() when ERR_CAST() is to be returned. */
+#define dev_err_cast_probe(dev, ___err_ptr, fmt, ...) \
+	ERR_PTR(dev_err_probe(dev, PTR_ERR(___err_ptr), fmt, ##__VA_ARGS__))
 
 #endif /* _DEVICE_PRINTK_H_ */
